@@ -8,8 +8,13 @@ class udpTools():
         self.EOF_MSG = b'<EOF>'
         self.encoding = 'utf-8'
         self.server_data = {
+<<<<<<< HEAD
             "address": ("207.23.186.47", 20001),
             # "address": ("127.0.0.1", 20001),
+=======
+            # "address": ("207.23.186.47", 20001),
+            "address": ("127.0.0.1", 20001),
+>>>>>>> 314e939bcc0c63003b0cb8091f222fe9cc2b4c5a
             "buffer": 8192
         }
         self.UDPSocket = None
