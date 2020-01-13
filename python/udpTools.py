@@ -134,7 +134,7 @@ class updClient(udpTools):
         f.close()
         self.sendData(self.EOF_MSG)
         print("\nFile sent.")
-        print("Send time: %f" % time.time() - start_time)
+        print("Send time: %f" % (time.time() - start_time))
 
 
 class updServer(udpTools):
@@ -165,6 +165,7 @@ class updServer(udpTools):
             self.sendData(self.ACK_MSG, address)
             if self.file is None:
                 self.file = os.path.join(self.resource_path, self.decode(message))
+                start_time = time.time()
                 print("receiving file: %s" % self.file)
                 start_time = time.time()
             elif self.file_size == 0:

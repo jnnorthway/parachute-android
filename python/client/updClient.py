@@ -5,7 +5,7 @@ sys.path.append(os.path.abspath(".."))
 from udpTools import updClient
 
 FILE = 'resources/clientdata.txt'
-FILE = '/mnt/sf_VM_Coding/textbook.pdf'
+FILE = '/mnt/sf_VM_Coding/textbook3.pdf'
 
 
 def udpClientTest():
