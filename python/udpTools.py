@@ -30,7 +30,7 @@ class udpTools():
         columns = int(os.popen('stty size', 'r').read().split()[1])
         columns -= len(progress_str)
         size_received = self.msg_received * self.server_data['buffer']
-        percentage = size_received / self.file_size
+        percentage = min(1, size_received / self.file_size)
         percent_buffer = ''
         for i in range(columns):
             if (percentage * columns) >= i:
@@ -44,7 +44,7 @@ class udpTools():
     def clearProgress(self):
         columns = int(os.popen('stty size', 'r').read().split()[1])
         buffer = '\r'
-        for i in range(columns):
+        for _ in range(columns):
             buffer += ' '
         buffer += '\r'
         sys.stdout.write(buffer)
