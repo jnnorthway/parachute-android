@@ -1,16 +1,20 @@
 import os
 import sys
+import time
 import socket
 
 class udpTools():
     def __init__(self):
         self.ACK_MSG = b'<ACK>'
         self.EOF_MSG = b'<EOF>'
+        self.timeout = 3.0
+        self.max_attempts = 3
         self.encoding = 'utf-8'
         self.server_data = {
             "address": ("207.23.186.47", 20001),
             # "address": ("127.0.0.1", 20001),
-            "buffer": 8192
+            # "buffer": 8192
+            "buffer": 1024
         }
         self.UDPSocket = None
         self.file = None
@@ -21,18 +25,29 @@ class udpTools():
 
 
     def printProgress(self):
+        progress_str = "\rProgress: [%s] %s"
+        columns = int(os.popen('stty size', 'r').read().split()[1])
+        columns -= len(progress_str)
         size_received = self.msg_received * self.server_data['buffer']
         percentage = size_received / self.file_size
         percent_buffer = ''
-        for i in range(10):
-            if (percentage * 100) >= (i * 10):
+        for i in range(columns):
+            if (percentage * columns) >= i:
                 percent_buffer += '#'
             else:
                 percent_buffer += ' '
         format_percent = "{0:.0%}".format(percentage)
-        sys.stdout.write("\rProgress: [%s] %s" % (percent_buffer, format_percent))
+        sys.stdout.write(progress_str % (percent_buffer, format_percent))
 
- 
+
+    def clearProgress(self):
+        columns = int(os.popen('stty size', 'r').read().split()[1])
+        buffer = '\r'
+        for i in range(columns):
+            buffer += ' '
+        buffer += '\r'
+        sys.stdout.write(buffer)
+
     def createUpdSocket(self):
         if self.UDPSocket is None:
             print("Creating socket.")
@@ -59,7 +74,11 @@ class udpTools():
     
     def recieveData(self):
         assert self.UDPSocket, "No socket available."
-        data = self.UDPSocket.recvfrom(self.server_data['buffer'])
+        self.UDPSocket.settimeout(self.timeout)
+        try:
+            data = self.UDPSocket.recvfrom(self.server_data['buffer'])
+        except:
+            return None
         self.msg_received += 1
         return data
 
@@ -78,13 +97,23 @@ class updClient(udpTools):
         self.fileInfo(file_path)
 
 
-    def sendData(self, data):
+    def sendData(self, data, attempt=0):
         assert self.UDPSocket, "No socket available."
+        assert attempt < self.max_attempts
         if isinstance(data, str):
             data = str.encode(data)
         assert isinstance(data, bytes), "data not in byte form."
         self.UDPSocket.sendto(data, self.server_data['address'])
+        msgFromServer = self.recieveData()
+        if msgFromServer == None:
+            attempt += 1
+            self.clearProgress()
+            print("Failed to receive, trying again: attempt = %d" % attempt)
+            return self.sendData(data, attempt)
+        msgFromServer = msgFromServer[0]
+        assert msgFromServer == self.ACK_MSG, "Something went wrong, \"%s\"" % self.decode(msgFromServer)
         self.msg_sent += 1
+        return msgFromServer
 
 
     def sendFile(self):
@@ -98,8 +127,7 @@ class updClient(udpTools):
             # Send to server using created UDP socket
             self.sendData(data)
             self.printProgress()
-            msgFromServer = self.recieveData()[0]
-            assert msgFromServer == self.ACK_MSG, "Something went wrong, \"%s\"" % self.decode(msgFromServer)
+            
             data = f.read(self.server_data['buffer'])
         f.close()
         self.sendData(self.EOF_MSG)
