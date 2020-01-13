@@ -15,7 +15,7 @@ class udpTools():
             "address": ("207.23.186.47", 20001),
             # "address": ("127.0.0.1", 20001),
             # "buffer": 8192
-            "buffer": 2048
+            "buffer": 1024
         }
         self.UDPSocket = None
         self.file = None
@@ -159,7 +159,6 @@ class updServer(udpTools):
         self.UDPSocket.bind(self.server_data['address'])
         while(self.EOF_MSG != message):
             bytesAddressPair = self.recieveData()
-            start_time = time.time()
             message = bytesAddressPair[0]
             address = bytesAddressPair[1]
             # Sending a reply to client
@@ -167,6 +166,7 @@ class updServer(udpTools):
             if self.file is None:
                 self.file = os.path.join(self.resource_path, self.decode(message))
                 print("receiving file: %s" % self.file)
+                start_time = time.time()
             elif self.file_size == 0:
                 self.file_size = int(self.decode(message))
                 self.printFileInfo()
@@ -179,5 +179,5 @@ class updServer(udpTools):
         f.write(data)
         print("\nFile written: %s" % self.file)
         f.close()
-        print("Receive time: %f" % time.time() - start_time)
+        print("Receive time: %f" % (time.time() - start_time))
         self.file_name = None
