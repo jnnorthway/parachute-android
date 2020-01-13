@@ -159,13 +159,13 @@ class updServer(udpTools):
         self.UDPSocket.bind(self.server_data['address'])
         while(self.EOF_MSG != message):
             bytesAddressPair = self.recieveData()
-            start_time = time.time()
             message = bytesAddressPair[0]
             address = bytesAddressPair[1]
             # Sending a reply to client
             self.sendData(self.ACK_MSG, address)
             if self.file is None:
                 self.file = os.path.join(self.resource_path, self.decode(message))
+                start_time = time.time()
                 print("receiving file: %s" % self.file)
             elif self.file_size == 0:
                 self.file_size = int(self.decode(message))
