@@ -25,66 +25,51 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         app:defaultNavHost="true"
-        app:layout_constraintBottom_toTopOf="@id/nav_view"
-        app:layout_constraintHorizontal_bias="1.0"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:navGraph="@navigation/mobile_navigation" />
+        app:navGraph="@navigation/mobile_navigation"
+        tools:layout_editor_absoluteX="-56dp"
+        tools:layout_editor_absoluteY="-38dp" />
 
     <Button
-        android:id="@+id/button"
+        android:id="@+id/send_data"
         android:layout_width="133dp"
         android:layout_height="50dp"
-        android:layout_marginBottom="28dp"
+        android:layout_marginBottom="52dp"
+        android:onClick="sendMessage"
         android:text="Send data"
         app:layout_constraintBottom_toTopOf="@+id/nav_view"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.498"
         app:layout_constraintStart_toStartOf="parent" />
-
-    <com.google.android.material.textfield.TextInputLayout
-        android:layout_width="268dp"
-        android:layout_height="wrap_content"
-        tools:layout_editor_absoluteX="69dp"
-        tools:layout_editor_absoluteY="188dp">
-
-    </com.google.android.material.textfield.TextInputLayout>
 
     <com.google.android.material.textfield.TextInputEditText
         android:id="@+id/address"
-        android:layout_width="310dp"
-        android:layout_height="53dp"
-        android:layout_marginTop="268dp"
+        android:layout_width="314dp"
+        android:layout_height="74dp"
+        android:layout_marginTop="112dp"
         android:hint="Address"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.153"
+        app:layout_constraintHorizontal_bias="0.164"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="@+id/nav_host_fragment" />
 
     <com.google.android.material.textfield.TextInputEditText
         android:id="@+id/textInputEditText"
-        android:layout_width="168dp"
-        android:layout_height="39dp"
-        android:layout_marginTop="328dp"
+        android:layout_width="180dp"
+        android:layout_height="57dp"
         android:hint="Port"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.065"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="@+id/nav_host_fragment" />
+        app:layout_constraintStart_toStartOf="@+id/address"
+        app:layout_constraintTop_toBottomOf="@+id/address" />
 
     <EditText
         android:id="@+id/editText"
-        android:layout_width="375dp"
-        android:layout_height="126dp"
-        android:layout_marginBottom="28dp"
+        android:layout_width="355dp"
+        android:layout_height="57dp"
+        android:layout_marginBottom="76dp"
         android:ems="10"
         android:gravity="start|top"
         android:hint="Enter in message here."
         android:inputType="textMultiLine"
-        app:layout_constraintBottom_toTopOf="@+id/button"
+        app:layout_constraintBottom_toTopOf="@+id/send_data"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.444"
         app:layout_constraintStart_toStartOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
