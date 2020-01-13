@@ -6,6 +6,7 @@ from udpTools import updClient
 
 FILE = 'resources/clientdata.txt'
 FILE = '/mnt/sf_VM_Coding/textbook3.pdf'
+FILE = '/home/jnorthway/Downloads/bird.jpg'
 
 
 def udpClientTest():
