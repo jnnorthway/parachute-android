@@ -74,7 +74,6 @@ class udpTools():
     
     def recieveData(self):
         assert self.UDPSocket, "No socket available."
-        self.UDPSocket.settimeout(self.timeout)
         try:
             data = self.UDPSocket.recvfrom(self.server_data['buffer'])
         except:
@@ -94,6 +93,7 @@ class udpTools():
 class updClient(udpTools):
     def __init__(self, file_path):
         super().__init__()
+        self.UDPSocket.settimeout(self.timeout)
         self.fileInfo(file_path)
 
 
@@ -139,12 +139,15 @@ class updServer(udpTools):
         self.resource_path = 'resources'
         super().__init__()
 
+
     def sendData(self, data, address):
+        assert self.UDPSocket, "No socket available."
         if isinstance(data, str):
             data = str.encode(data)
         assert isinstance(data, bytes), "data not in byte form."
         self.UDPSocket.sendto(data, address)
         self.msg_sent += 1
+
 
     def receiveFile(self):
         # Listen for incoming datagrams
@@ -153,6 +156,7 @@ class updServer(udpTools):
         self.UDPSocket.bind(self.server_data['address'])
         while(self.EOF_MSG != message):
             bytesAddressPair = self.recieveData()
+            
             message = bytesAddressPair[0]
             address = bytesAddressPair[1]
             # Sending a reply to client
