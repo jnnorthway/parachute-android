@@ -167,6 +167,7 @@ class updServer(udpTools):
                 self.file = os.path.join(self.resource_path, self.decode(message))
                 start_time = time.time()
                 print("receiving file: %s" % self.file)
+                start_time = time.time()
             elif self.file_size == 0:
                 self.file_size = int(self.decode(message))
                 self.printFileInfo()
