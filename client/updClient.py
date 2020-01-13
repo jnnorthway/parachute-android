@@ -15,7 +15,6 @@ def udpClientTest():
     # Create a UDP socket at client side
     client.createUpdSocket()
     client.sendFile()
-    print("done sending data")
     client.close()
 
 

@@ -12,7 +12,6 @@ def udpServerTest():
     server.createUpdSocket()
     server.receiveFile()
     server.close()
-    server.printFileInfo()
 
 
 if __name__== "__main__":

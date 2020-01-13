@@ -131,7 +131,6 @@ class updClient(udpTools):
             data = f.read(self.server_data['buffer'])
         f.close()
         self.sendData(self.EOF_MSG)
-        print("\n")
         print("file sent.")
 
 
@@ -171,7 +170,6 @@ class updServer(udpTools):
         data = data.strip(self.EOF_MSG)
         f=open(self.file, "wb")
         f.write(data)
-        print("\n")
         print("File written: %s" % self.file)
         f.close()
         self.file_name = None
