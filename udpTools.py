@@ -15,7 +15,7 @@ class udpTools():
             "address": ("207.23.186.47", 20001),
             # "address": ("127.0.0.1", 20001),
             # "buffer": 8192
-            "buffer": 1024
+            "buffer": 2048
         }
         self.UDPSocket = None
         self.file = None
@@ -134,7 +134,7 @@ class updClient(udpTools):
         f.close()
         self.sendData(self.EOF_MSG)
         print("\nFile sent.")
-        print("Send time: %d" % time.time() - start_time)
+        print("Send time: %f" % time.time() - start_time)
 
 
 class updServer(udpTools):
@@ -179,5 +179,5 @@ class updServer(udpTools):
         f.write(data)
         print("\nFile written: %s" % self.file)
         f.close()
-        print("Receive time: %d" % time.time() - start_time)
+        print("Receive time: %f" % time.time() - start_time)
         self.file_name = None
