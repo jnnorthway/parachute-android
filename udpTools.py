@@ -93,7 +93,6 @@ class udpTools():
 class updClient(udpTools):
     def __init__(self, file_path):
         super().__init__()
-        self.UDPSocket.settimeout(self.timeout)
         self.fileInfo(file_path)
 
 
@@ -118,6 +117,7 @@ class updClient(udpTools):
 
     def sendFile(self):
         self.createUpdSocket()
+        self.UDPSocket.settimeout(self.timeout)
         print("sending file: %s" % self.file)
         self.sendData(self.file_name)
         self.sendData(str(self.file_size).encode())
