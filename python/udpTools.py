@@ -12,7 +12,7 @@ class udpTools():
         self.max_attempts = 3
         self.encoding = 'utf-8'
         self.server_data = {
-            "address": ("207.23.186.47", 20001),
+            "address": ("192.168.56.1", 20001),
             # "address": ("127.0.0.1", 20001),
             # "buffer": 8192
             "buffer": 1024
@@ -95,6 +95,14 @@ class updClient(udpTools):
     def __init__(self, file_path):
         super().__init__()
         self.fileInfo(file_path)
+
+
+    def sendRawData(self, data):
+        assert self.UDPSocket, "No socket available."
+        if isinstance(data, str):
+            data = str.encode(data)
+        assert isinstance(data, bytes), "data not in byte form."
+        self.UDPSocket.sendto(data, self.server_data['address'])
 
 
     def sendData(self, data, attempt=0):
