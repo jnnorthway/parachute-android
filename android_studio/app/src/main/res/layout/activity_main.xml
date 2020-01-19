@@ -26,8 +26,8 @@
         android:layout_height="match_parent"
         app:defaultNavHost="true"
         app:navGraph="@navigation/mobile_navigation"
-        tools:layout_editor_absoluteX="-56dp"
-        tools:layout_editor_absoluteY="-38dp" />
+        tools:layout_editor_absoluteX="-102dp"
+        tools:layout_editor_absoluteY="16dp" />
 
     <Button
         android:id="@+id/send_data"
@@ -44,10 +44,10 @@
         android:id="@+id/address"
         android:layout_width="314dp"
         android:layout_height="74dp"
-        android:layout_marginTop="112dp"
+        android:layout_marginTop="100dp"
         android:hint="Address"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.164"
+        app:layout_constraintHorizontal_bias="0.288"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="@+id/nav_host_fragment" />
 
@@ -63,7 +63,7 @@
         android:id="@+id/message"
         android:layout_width="355dp"
         android:layout_height="57dp"
-        android:layout_marginBottom="76dp"
+        android:layout_marginBottom="28dp"
         android:ems="10"
         android:gravity="start|top"
         android:hint="Enter in message here."
@@ -76,10 +76,27 @@
         android:id="@+id/gallery"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginTop="57dp"
         android:layout_marginBottom="48dp"
         android:text="Gallery"
         app:layout_constraintBottom_toTopOf="@+id/message"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintHorizontal_bias="0.086"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/port"
+        app:layout_constraintVertical_bias="0.395" />
+
+    <ImageView
+        android:id="@+id/imageView"
+        android:layout_width="117dp"
+        android:layout_height="112dp"
+        android:layout_marginStart="62dp"
+        android:layout_marginLeft="62dp"
+        android:layout_marginTop="9dp"
+        app:layout_constraintBottom_toTopOf="@+id/message"
+        app:layout_constraintEnd_toEndOf="@+id/nav_host_fragment"
+        app:layout_constraintStart_toEndOf="@+id/gallery"
+        app:layout_constraintTop_toBottomOf="@+id/port"
+        app:srcCompat="@android:color/background_light" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
