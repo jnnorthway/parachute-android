@@ -5,12 +5,14 @@ import android.app.Activity
 import android.content.ContentResolver
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.database.Cursor
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Build.VERSION
 import android.os.Build.VERSION_CODES
 import android.os.Bundle
+import android.provider.OpenableColumns
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageView
@@ -24,6 +26,7 @@ import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.textfield.TextInputEditText
 import org.jetbrains.anko.doAsync
 import java.io.ByteArrayOutputStream
+import java.io.File
 import java.io.InputStream
 import java.net.DatagramPacket
 import java.net.DatagramSocket
@@ -150,23 +153,22 @@ class MainActivity : AppCompatActivity() {
         println("byte data size: " + byteData.size)
 
         val client = UdpClient(address, port)
-        var fileName = stringToByteArray("bird.jpg")
+        println("URI = $data")
+
+        var fileName = stringToByteArray(getFileName(data))
         var fileSize = intToByteArray(byteData.size)
         var eof = stringToByteArray("<EOF>")
         client.sendData(fileName)
         client.sendData(fileSize)
         var i = 0
         var buffer = 1000
+        println("Sending data...")
         while (i < byteData.size){
             var slice = i + buffer - 1
             if (byteData.size < slice) {
                 slice = byteData.size -1
             }
-            println("size = ${byteData.size}")
-            println("i = ${i}")
-            println("slice = ${slice}")
             var buf = byteData.sliceArray(IntRange(i, slice))
-            println("MESSAGE")
             client.sendData(buf)
             i += buffer
         }
@@ -181,6 +183,27 @@ class MainActivity : AppCompatActivity() {
     }
     private fun editTextToString(data : EditText) : String {
         return data.text.toString()
+    }
+    private fun getFileName(uri : Uri) : String {
+      var result : String? = null
+      if (uri.scheme.equals("content")) {
+        var cursor : Cursor? = contentResolver.query(uri, null, null, null, null)
+        try {
+          if (cursor != null && cursor.moveToFirst()) {
+            result = cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME))
+          }
+        } finally {
+          cursor?.close()
+        }
+      }
+      if (result == null) {
+        result = uri.path!!
+        var cut : Int = result.lastIndexOf('/')
+        if (cut != -1) {
+          result = result.substring(cut + 1)
+        }
+      }
+      return result
     }
 }
 
