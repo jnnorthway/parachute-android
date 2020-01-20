@@ -12,6 +12,7 @@ import android.net.Uri
 import android.os.Build.VERSION
 import android.os.Build.VERSION_CODES
 import android.os.Bundle
+import android.os.SystemClock
 import android.provider.OpenableColumns
 import android.widget.Button
 import android.widget.EditText
@@ -26,12 +27,8 @@ import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.textfield.TextInputEditText
 import org.jetbrains.anko.doAsync
 import java.io.ByteArrayOutputStream
-import java.io.File
 import java.io.InputStream
-import java.net.DatagramPacket
-import java.net.DatagramSocket
-import java.net.InetAddress
-import java.net.SocketTimeoutException
+import java.net.*
 
 
 class MainActivity : AppCompatActivity() {
@@ -93,7 +90,8 @@ class MainActivity : AppCompatActivity() {
             var dataSent = false
             Toast.makeText(applicationContext, "Data Sending", Toast.LENGTH_LONG).show()
             doAsync {
-                dataSent = sendFile(data!!.data!!, editTextToString(address), editTextToString(port))
+                val tcpCliient = TcpClient(editTextToString(address), editTextToString(port))
+                dataSent = tcpCliient.sendFile(data!!.data!!, baseContext.contentResolver)
             }
             if (dataSent) {
                 Toast.makeText(applicationContext, "Data sent", Toast.LENGTH_LONG).show()
@@ -142,10 +140,32 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun sendFile(data : Uri, address : String, port : String) : Boolean {
+    private fun editTextToString(data : EditText) : String {
+        return data.text.toString()
+    }
+}
+
+
+class TcpClient(serverAddress: String, serverPort: String, buffer: Int = 1024) {
+    private val address : String = serverAddress
+    private val port : Int = Integer.parseInt(serverPort)
+    private val maxBuffer : Int = buffer
+    private var tcpSocket : Socket
+
+    init {
+        val ip = InetAddress.getByName(address)
+        tcpSocket = Socket(ip!!, port)
+    }
+
+    fun sendData(data: ByteArray):Boolean {
+        tcpSocket.outputStream.write(data)
+        return true
+    }
+
+    fun sendFile(data : Uri, contentResolver : ContentResolver) : Boolean {
 
         var byteData : ByteArray?
-        var cr : ContentResolver = baseContext.contentResolver
+        var cr : ContentResolver = contentResolver
         var inputStream : InputStream? = cr.openInputStream(data)
         var bitmap : Bitmap = BitmapFactory.decodeStream(inputStream)
         var byteArray = ByteArrayOutputStream()
@@ -153,30 +173,56 @@ class MainActivity : AppCompatActivity() {
         byteData = byteArray.toByteArray()
         println("byte data size: " + byteData.size)
 
-        val client = UdpClient(address, port)
-        println("URI = $data")
-
-        var fileName = stringToByteArray(getFileName(data))
+        var fileName = stringToByteArray(getFileName(data, contentResolver))
         var fileSize = intToByteArray(byteData.size)
         var eof = stringToByteArray("<EOF>")
-        if(!client.sendData(fileName) || !client.sendData(fileSize)){
+
+        if (!sendData(fileName)){
             return false
         }
+        SystemClock.sleep(500)
+        if(!sendData(fileSize)){
+            return false
+        }
+        SystemClock.sleep(500)
+
         var i = 0
-        var buffer = 1000
         println("Sending data...")
         while (i < byteData.size){
-            var slice = i + buffer - 1
+            var slice = i + maxBuffer - 1
             if (byteData.size < slice) {
                 slice = byteData.size -1
             }
             var buf = byteData.sliceArray(IntRange(i, slice))
-            if(!client.sendData(buf)){
+            if(!sendData(buf)){
                 return false
             }
-            i += buffer
+            i += maxBuffer
         }
-        return client.sendData(eof)
+        SystemClock.sleep(500)
+        return sendData(eof)
+    }
+
+    private fun getFileName(uri : Uri, cr : ContentResolver) : String {
+        var result : String? = null
+        if (uri.scheme.equals("content")) {
+            var cursor : Cursor? = cr.query(uri, null, null, null, null)
+            try {
+                if (cursor != null && cursor.moveToFirst()) {
+                    result = cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME))
+                }
+            } finally {
+                cursor?.close()
+            }
+        }
+        if (result == null) {
+            result = uri.path!!
+            var cut : Int = result.lastIndexOf('/')
+            if (cut != -1) {
+                result = result.substring(cut + 1)
+            }
+        }
+        return result
     }
 
     private fun stringToByteArray(data : String) : ByteArray {
@@ -184,63 +230,5 @@ class MainActivity : AppCompatActivity() {
     }
     private fun intToByteArray(data : Int) : ByteArray {
         return data.toString().toByteArray()
-    }
-    private fun editTextToString(data : EditText) : String {
-        return data.text.toString()
-    }
-    private fun getFileName(uri : Uri) : String {
-      var result : String? = null
-      if (uri.scheme.equals("content")) {
-        var cursor : Cursor? = contentResolver.query(uri, null, null, null, null)
-        try {
-          if (cursor != null && cursor.moveToFirst()) {
-            result = cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME))
-          }
-        } finally {
-          cursor?.close()
-        }
-      }
-      if (result == null) {
-        result = uri.path!!
-        var cut : Int = result.lastIndexOf('/')
-        if (cut != -1) {
-          result = result.substring(cut + 1)
-        }
-      }
-      return result
-    }
-}
-
-
-class UdpClient(address: String, port: String) {
-    private val address : String = address
-    private val port : Int = Integer.parseInt(port)
-    private val maxAttempts : Int = 5
-
-    fun sendData(data: ByteArray, attempt : Int = 0):Boolean {
-        // Create the socket object
-        val udpSocket = DatagramSocket()
-        udpSocket.soTimeout = 10000
-        // Get ip address
-        val ip = InetAddress.getByName(address)
-        // Create datagram packet
-        val udpSend = DatagramPacket(data, data.size, ip, port)
-        // Send data
-        udpSocket.send(udpSend)
-        // Receive data
-        try {
-            udpSocket.receive(udpSend)
-        } catch (e : SocketTimeoutException) {
-            // resend
-            println("send attempt failed, on attempt ${attempt + 1} of $maxAttempts")
-            if (attempt < maxAttempts) {
-                sendData(data, attempt = (attempt + 1))
-            }
-            else {
-                println("max sending attempts reached.")
-                return false
-            }
-        }
-        return true
     }
 }
