@@ -31,6 +31,7 @@ import java.io.InputStream
 import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetAddress
+import java.net.SocketTimeoutException
 
 
 class MainActivity : AppCompatActivity() {
@@ -158,8 +159,9 @@ class MainActivity : AppCompatActivity() {
         var fileName = stringToByteArray(getFileName(data))
         var fileSize = intToByteArray(byteData.size)
         var eof = stringToByteArray("<EOF>")
-        client.sendData(fileName)
-        client.sendData(fileSize)
+        if(!client.sendData(fileName) || !client.sendData(fileSize)){
+            return false
+        }
         var i = 0
         var buffer = 1000
         println("Sending data...")
@@ -169,7 +171,9 @@ class MainActivity : AppCompatActivity() {
                 slice = byteData.size -1
             }
             var buf = byteData.sliceArray(IntRange(i, slice))
-            client.sendData(buf)
+            if(!client.sendData(buf)){
+                return false
+            }
             i += buffer
         }
         return client.sendData(eof)
@@ -211,11 +215,12 @@ class MainActivity : AppCompatActivity() {
 class UdpClient(address: String, port: String) {
     private val address : String = address
     private val port : Int = Integer.parseInt(port)
+    private val maxAttempts : Int = 5
 
-    fun sendData(data: ByteArray):Boolean {
-        println("Sending data")
+    fun sendData(data: ByteArray, attempt : Int = 0):Boolean {
         // Create the socket object
         val udpSocket = DatagramSocket()
+        udpSocket.soTimeout = 10000
         // Get ip address
         val ip = InetAddress.getByName(address)
         // Create datagram packet
@@ -223,7 +228,19 @@ class UdpClient(address: String, port: String) {
         // Send data
         udpSocket.send(udpSend)
         // Receive data
-        udpSocket.receive(udpSend)
+        try {
+            udpSocket.receive(udpSend)
+        } catch (e : SocketTimeoutException) {
+            // resend
+            println("send attempt failed, on attempt ${attempt + 1} of $maxAttempts")
+            if (attempt < maxAttempts) {
+                sendData(data, attempt = (attempt + 1))
+            }
+            else {
+                println("max sending attempts reached.")
+                return false
+            }
+        }
         return true
     }
 }
