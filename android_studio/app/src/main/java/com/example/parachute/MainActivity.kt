@@ -26,6 +26,7 @@ import androidx.navigation.ui.setupWithNavController
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.textfield.TextInputEditText
 import org.jetbrains.anko.doAsync
+import org.jetbrains.anko.uiThread
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.net.*
@@ -36,7 +37,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        val navView: BottomNavigationView = findViewById(R.id.nav_view)
+        val navView: BottomNavigationView = findViewById(R.id.navView)
 
         val navController = findNavController(R.id.nav_host_fragment)
         // Passing each menu ID as a set of Ids because each
@@ -54,7 +55,6 @@ class MainActivity : AppCompatActivity() {
         val gallery: Button = findViewById(R.id.gallery)
         val address: TextInputEditText = findViewById((R.id.address))
         val port: TextInputEditText = findViewById((R.id.port))
-        val message: EditText = findViewById(R.id.message)
 
         if (VERSION.SDK_INT >= VERSION_CODES.M) {
             if (checkSelfPermission(Manifest.permission.INTERNET) == PackageManager.PERMISSION_DENIED) {
@@ -87,19 +87,25 @@ class MainActivity : AppCompatActivity() {
 
         sendButton.setOnClickListener {
             // Send file to sever
-            var dataSent = false
-            Toast.makeText(applicationContext, "Data Sending", Toast.LENGTH_LONG).show()
+            Toast.makeText(applicationContext, "Data Sending", Toast.LENGTH_SHORT).show()
             doAsync {
-                val tcpCliient = TcpClient(editTextToString(address), editTextToString(port))
-                dataSent = tcpCliient.sendFile(data!!.data!!, baseContext.contentResolver)
-            }
-            if (dataSent) {
-                Toast.makeText(applicationContext, "Data sent", Toast.LENGTH_LONG).show()
-            } else {
-                Toast.makeText(applicationContext, "Data send failed", Toast.LENGTH_LONG).show()
+                val tcpClient = TcpClient(editTextToString(address), editTextToString(port))
+                val dataSent = tcpClient.sendFile(data!!.data!!, baseContext.contentResolver)
+                uiThread{
+                    if (dataSent) {
+                        Toast.makeText(applicationContext, "Data send successful", Toast.LENGTH_LONG).show()
+                    } else {
+                        Toast.makeText(applicationContext, "Data send failed", Toast.LENGTH_LONG).show()
+                    }
+                }
             }
         }
     }
+
+//    private fun getDocument() {
+//        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
+//        startActivityForResult(intent, OPEN_DIRECTORY_REQUEST_CODE)
+//    }
 
     private fun pickImageFromGallery() {
         //Intent to pick image
