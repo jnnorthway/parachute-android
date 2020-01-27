@@ -27,19 +27,23 @@ import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.textfield.TextInputEditText
 import org.jetbrains.anko.doAsync
 import org.jetbrains.anko.uiThread
-import java.io.ByteArrayOutputStream
-import java.io.InputStream
-import java.net.*
+import java.io.*
+import java.net.InetAddress
+import java.net.ServerSocket
+import java.net.Socket
+import java.net.UnknownHostException
+import kotlin.String
 
 
 class MainActivity : AppCompatActivity() {
-    var data : Intent? = null
+    private var data : Intent? = null
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        val navView: BottomNavigationView = findViewById(R.id.navView)
+        val navView: BottomNavigationView = findViewById(R.id.nav_view)
 
         val navController = findNavController(R.id.nav_host_fragment)
+
         // Passing each menu ID as a set of Ids because each
         // menu should be considered as top level destinations.
         val appBarConfiguration = AppBarConfiguration(
@@ -83,6 +87,11 @@ class MainActivity : AppCompatActivity() {
                 //system OS is < Marshmallow
                 pickImageFromGallery()
             }
+        }
+
+        doAsync {
+            val tcpServer = TcpServer()
+            tcpServer.receiveFile()
         }
 
         sendButton.setOnClickListener {
@@ -163,13 +172,12 @@ class TcpClient(serverAddress: String, serverPort: String, buffer: Int = 1024) {
         tcpSocket = Socket(ip!!, port)
     }
 
-    fun sendData(data: ByteArray):Boolean {
+    private fun sendData(data: ByteArray):Boolean {
         tcpSocket.outputStream.write(data)
         return true
     }
 
     fun sendFile(data : Uri, contentResolver : ContentResolver) : Boolean {
-
         var byteData : ByteArray?
         var cr : ContentResolver = contentResolver
         var inputStream : InputStream? = cr.openInputStream(data)
@@ -236,5 +244,90 @@ class TcpClient(serverAddress: String, serverPort: String, buffer: Int = 1024) {
     }
     private fun intToByteArray(data : Int) : ByteArray {
         return data.toString().toByteArray()
+    }
+}
+
+class TcpServer(buffer: Int = 1024) {
+    private val port : Int = 20001
+    private val maxBuffer : Int = buffer
+    private var tcpSocket : ServerSocket? = null
+    private var socket : Socket? = null
+    private var bytesRead = 0
+    private var fileSize = 0
+    private var fileName = ""
+
+    init {
+        tcpSocket = ServerSocket(port)
+    }
+
+    private fun sendData(data: ByteArray) : Boolean {
+        println("Sending Data")
+        socket!!.outputStream.write(data)
+        return true
+    }
+
+    private fun receiveData() : ByteArray {
+        println("Reading Data")
+        var byteData = ByteArray(maxBuffer)
+        
+        socket!!.inputStream.read(byteData, bytesRead, maxBuffer)
+        bytesRead += maxBuffer
+        print(String(byteData))
+        return byteData
+    }
+
+    fun receiveFile() {
+        var fileData : ByteArray? = null
+        try {
+            println("Waiting for connection")
+            socket = tcpSocket!!.accept()
+            println("Connected to ${socket!!.inetAddress}:${socket!!.port}")
+            while (true) {
+                var message : ByteArray = receiveData()
+                if (fileName == ""){
+                    fileName = cleanString(byteArrayToString(message))
+                    println("File Name: $fileName")
+                    sendData(stringToByteArray("ACK"))
+                }
+                else if (fileSize == 0){
+                    fileSize = byteArrayToInt(message)
+                    println("File Size: $fileSize")
+                    fileData = ByteArray(fileSize)
+                    sendData(stringToByteArray("ACK"))
+                }
+                else{
+                    fileData!!.plus(message)
+                    println("Message size = ${message.size}, total size = ${fileData.size}")
+                    if (fileData!!.size >= fileSize) {
+                        println("File received.")
+//                        break
+                    }
+                }
+            }
+            socket!!.close()
+        }
+        catch (e : UnknownHostException) {
+            println("ERROR")
+            e.printStackTrace()
+        } catch (e : IOException) {
+            println("ERROR")
+            e.printStackTrace()
+        }
+    }
+
+    private fun cleanString(data : String) : String {
+        return data.split("<EOF>")[0]
+    }
+    private fun stringToByteArray(data : String) : ByteArray {
+        return data.toByteArray()
+    }
+    private fun byteArrayToString(data : ByteArray) : String {
+       return String(data)
+    }
+    private fun intToByteArray(data : Int) : ByteArray {
+        return stringToByteArray(data.toString())
+    }
+    private fun byteArrayToInt(data : ByteArray) : Int {
+        return Integer.parseInt(cleanString(byteArrayToString(data)))
     }
 }
