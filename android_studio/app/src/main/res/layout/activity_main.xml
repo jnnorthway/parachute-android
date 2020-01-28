@@ -26,8 +26,8 @@
         android:layout_height="match_parent"
         app:defaultNavHost="true"
         app:navGraph="@navigation/mobile_navigation"
-        tools:layout_editor_absoluteX="-102dp"
-        tools:layout_editor_absoluteY="16dp" />
+        tools:layout_editor_absoluteX="0dp"
+        tools:layout_editor_absoluteY="56dp" />
 
     <Button
         android:id="@+id/send_data"
@@ -35,7 +35,7 @@
         android:layout_height="50dp"
         android:layout_marginBottom="52dp"
         android:onClick="sendMessage"
-        android:text="Send data"
+        android:text="@string/send_data"
         app:layout_constraintBottom_toTopOf="@+id/nav_view"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
@@ -45,7 +45,7 @@
         android:layout_width="314dp"
         android:layout_height="74dp"
         android:layout_marginTop="100dp"
-        android:hint="Address"
+        android:hint="@string/address"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.288"
         app:layout_constraintStart_toStartOf="parent"
@@ -55,36 +55,21 @@
         android:id="@+id/port"
         android:layout_width="180dp"
         android:layout_height="57dp"
-        android:hint="Port"
+        android:hint="@string/port"
+        android:text="@string/default_port"
         app:layout_constraintStart_toStartOf="@+id/address"
         app:layout_constraintTop_toBottomOf="@+id/address" />
-
-    <EditText
-        android:id="@+id/message"
-        android:layout_width="355dp"
-        android:layout_height="57dp"
-        android:layout_marginBottom="28dp"
-        android:ems="10"
-        android:gravity="start|top"
-        android:hint="Enter in message here."
-        android:inputType="textMultiLine"
-        app:layout_constraintBottom_toTopOf="@+id/send_data"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
 
     <Button
         android:id="@+id/gallery"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="57dp"
-        android:layout_marginBottom="48dp"
-        android:text="Gallery"
-        app:layout_constraintBottom_toTopOf="@+id/message"
+        android:text="@string/gallery"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.086"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/port"
-        app:layout_constraintVertical_bias="0.395" />
+        app:layout_constraintTop_toBottomOf="@+id/port" />
 
     <ImageView
         android:id="@+id/imageView"
@@ -93,7 +78,7 @@
         android:layout_marginStart="62dp"
         android:layout_marginLeft="62dp"
         android:layout_marginTop="9dp"
-        app:layout_constraintBottom_toTopOf="@+id/message"
+        android:contentDescription="@string/image_preview"
         app:layout_constraintEnd_toEndOf="@+id/nav_host_fragment"
         app:layout_constraintStart_toEndOf="@+id/gallery"
         app:layout_constraintTop_toBottomOf="@+id/port"
