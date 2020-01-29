@@ -9,4 +9,6 @@
     <string name="default_port">20001</string>
     <string name="gallery">Gallery</string>
     <string name="image_preview">image preview</string>
+    <string name="device_ip_address">Device IP Address:</string>
+    <string name="receive_data">receive data</string>
 </resources>
