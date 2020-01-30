@@ -26,28 +26,41 @@
         android:layout_height="match_parent"
         app:defaultNavHost="true"
         app:navGraph="@navigation/mobile_navigation"
-        tools:layout_editor_absoluteX="0dp"
-        tools:layout_editor_absoluteY="56dp" />
+        tools:layout_editor_absoluteX="119dp"
+        tools:layout_editor_absoluteY="40dp" />
 
     <Button
-        android:id="@+id/send_data"
+        android:id="@+id/sendData"
         android:layout_width="133dp"
         android:layout_height="50dp"
-        android:layout_marginBottom="52dp"
+        android:layout_marginTop="64dp"
         android:onClick="sendMessage"
         android:text="@string/send_data"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.187"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/gallery" />
+
+    <Button
+        android:id="@+id/receiveData"
+        android:layout_width="133dp"
+        android:layout_height="50dp"
+        android:text="@string/receive_data"
         app:layout_constraintBottom_toTopOf="@+id/nav_view"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintHorizontal_bias="0.451"
+        app:layout_constraintStart_toEndOf="@+id/sendData"
+        app:layout_constraintTop_toTopOf="@+id/sendData"
+        app:layout_constraintVertical_bias="0.0" />
 
     <com.google.android.material.textfield.TextInputEditText
         android:id="@+id/address"
         android:layout_width="314dp"
         android:layout_height="74dp"
-        android:layout_marginTop="100dp"
+        android:layout_marginTop="148dp"
         android:hint="@string/address"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.288"
+        app:layout_constraintHorizontal_bias="0.298"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="@+id/nav_host_fragment" />
 
@@ -57,31 +70,56 @@
         android:layout_height="57dp"
         android:hint="@string/port"
         android:text="@string/default_port"
+        app:layout_constraintBottom_toTopOf="@+id/imageView"
         app:layout_constraintStart_toStartOf="@+id/address"
-        app:layout_constraintTop_toBottomOf="@+id/address" />
+        app:layout_constraintTop_toBottomOf="@+id/address"
+        app:layout_constraintVertical_bias="0.0" />
 
     <Button
         android:id="@+id/gallery"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="57dp"
+        android:layout_width="116dp"
+        android:layout_height="55dp"
         android:text="@string/gallery"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.086"
+        app:layout_constraintHorizontal_bias="0.198"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/port" />
+        app:layout_constraintTop_toBottomOf="@+id/imageView" />
 
     <ImageView
         android:id="@+id/imageView"
         android:layout_width="117dp"
         android:layout_height="112dp"
-        android:layout_marginStart="62dp"
-        android:layout_marginLeft="62dp"
-        android:layout_marginTop="9dp"
+        android:layout_marginTop="80dp"
         android:contentDescription="@string/image_preview"
-        app:layout_constraintEnd_toEndOf="@+id/nav_host_fragment"
-        app:layout_constraintStart_toEndOf="@+id/gallery"
-        app:layout_constraintTop_toBottomOf="@+id/port"
+        app:layout_constraintEnd_toEndOf="@+id/gallery"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="@+id/gallery"
+        app:layout_constraintTop_toBottomOf="@+id/address"
         app:srcCompat="@android:color/background_light" />
+
+    <TextView
+        android:id="@+id/deviceAddress"
+        android:layout_width="313dp"
+        android:layout_height="47dp"
+        android:text="@string/device_ip_address"
+        android:textAppearance="@style/TextAppearance.AppCompat.Medium"
+        app:layout_constraintBottom_toTopOf="@+id/address"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.295"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/nav_host_fragment"
+        app:layout_constraintVertical_bias="1.0" />
+
+    <ProgressBar
+        android:id="@+id/progressBar"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:max="100"
+        android:progress="0"
+        android:layout_width="308dp"
+        android:layout_height="29dp"
+        app:layout_constraintBottom_toTopOf="@+id/sendData"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/gallery" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
