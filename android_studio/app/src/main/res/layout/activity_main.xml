@@ -33,11 +33,11 @@
         android:id="@+id/sendData"
         android:layout_width="133dp"
         android:layout_height="50dp"
-        android:layout_marginTop="28dp"
+        android:layout_marginTop="64dp"
         android:onClick="sendMessage"
         android:text="@string/send_data"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.147"
+        app:layout_constraintHorizontal_bias="0.187"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/gallery" />
 
@@ -48,7 +48,7 @@
         android:text="@string/receive_data"
         app:layout_constraintBottom_toTopOf="@+id/nav_view"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.358"
+        app:layout_constraintHorizontal_bias="0.451"
         app:layout_constraintStart_toEndOf="@+id/sendData"
         app:layout_constraintTop_toTopOf="@+id/sendData"
         app:layout_constraintVertical_bias="0.0" />
@@ -109,5 +109,17 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="@+id/nav_host_fragment"
         app:layout_constraintVertical_bias="1.0" />
+
+    <ProgressBar
+        android:id="@+id/progressBar"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:max="100"
+        android:progress="0"
+        android:layout_width="308dp"
+        android:layout_height="29dp"
+        app:layout_constraintBottom_toTopOf="@+id/sendData"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/gallery" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

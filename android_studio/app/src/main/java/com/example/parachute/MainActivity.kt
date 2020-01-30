@@ -22,6 +22,7 @@ import android.os.SystemClock
 import android.provider.OpenableColumns
 import android.text.format.Formatter
 import android.widget.*
+import androidx.annotation.UiThread
 import androidx.appcompat.app.AppCompatActivity
 import androidx.navigation.findNavController
 import androidx.navigation.ui.AppBarConfiguration
@@ -36,6 +37,10 @@ import java.net.InetAddress
 import java.net.ServerSocket
 import java.net.Socket
 import java.net.UnknownHostException
+import java.util.Collections.max
+import java.util.Collections.min
+import kotlin.math.max
+import kotlin.math.min
 
 
 class MainActivity : AppCompatActivity() {
@@ -63,7 +68,8 @@ class MainActivity : AppCompatActivity() {
         val gallery: Button = findViewById(R.id.gallery)
         val deviceAddress : TextView = findViewById(R.id.deviceAddress)
         val address: TextInputEditText = findViewById((R.id.address))
-        val port: TextInputEditText = findViewById((R.id.port))
+        val port: TextInputEditText = findViewById(R.id.port)
+        val progressBar : ProgressBar = findViewById(R.id.progressBar)
 
         if (VERSION.SDK_INT >= VERSION_CODES.M) {
             if (checkSelfPermission(Manifest.permission.INTERNET) == PackageManager.PERMISSION_DENIED) {
@@ -106,19 +112,20 @@ class MainActivity : AppCompatActivity() {
         receiveButton.setOnClickListener {
             // Receive file from client
             doAsync {
-                val tcpServer = TcpServer(applicationContext)
+                val tcpServer = TcpServer(applicationContext, progressBar)
                 tcpServer.receiveFile()
                 uiThread{
-                    Toast.makeText(applicationContext, "Device ready to receive data.", Toast.LENGTH_LONG).show()
+                    Toast.makeText(applicationContext, "File received.", Toast.LENGTH_LONG).show()
                 }
             }
+            Toast.makeText(applicationContext, "Device ready to receive data.", Toast.LENGTH_LONG).show()
         }
 
         sendButton.setOnClickListener {
             // Send file to sever
             Toast.makeText(applicationContext, "Data Sending", Toast.LENGTH_SHORT).show()
             doAsync {
-                val tcpClient = TcpClient(editTextToString(address), editTextToString(port))
+                val tcpClient = TcpClient(editTextToString(address), editTextToString(port), progressBar)
                 val dataSent = tcpClient.sendFile(data!!.data!!, baseContext.contentResolver)
                 uiThread{
                     if (dataSent) {
@@ -188,11 +195,14 @@ class MainActivity : AppCompatActivity() {
 }
 
 
-class TcpClient(serverAddress: String, serverPort: String, buffer: Int = 1024) {
+class TcpClient(serverAddress: String, serverPort: String, progressBar: ProgressBar, buffer: Int = 1024) {
     private val address : String = serverAddress
     private val port : Int = Integer.parseInt(serverPort)
     private val maxBuffer : Int = buffer
     private var tcpSocket : Socket
+    private var fileSize = 0
+    private var bytesSent = 0
+    private val progressBar = progressBar
 
     init {
         val ip = InetAddress.getByName(address)
@@ -201,6 +211,16 @@ class TcpClient(serverAddress: String, serverPort: String, buffer: Int = 1024) {
 
     private fun sendData(data: ByteArray):Boolean {
         tcpSocket.outputStream.write(data)
+        return true
+    }
+
+    private fun sendData(data: String):Boolean {
+        tcpSocket.outputStream.write(stringToByteArray(data))
+        return true
+    }
+
+    private fun sendData(data: Int):Boolean {
+        tcpSocket.outputStream.write(intToByteArray(data))
         return true
     }
 
@@ -214,8 +234,9 @@ class TcpClient(serverAddress: String, serverPort: String, buffer: Int = 1024) {
         byteData = byteArray.toByteArray()
         println("byte data size: " + byteData.size)
 
-        var fileName = stringToByteArray(getFileName(data, contentResolver))
-        var fileSize = intToByteArray(byteData.size)
+        progressBar.progress = bytesSent
+        var fileName = getFileName(data, contentResolver)
+        fileSize = byteData.size
         var eof = stringToByteArray("<EOF>")
 
         if (!sendData(fileName)){
@@ -238,10 +259,12 @@ class TcpClient(serverAddress: String, serverPort: String, buffer: Int = 1024) {
             if(!sendData(buf)){
                 return false
             }
+            bytesSent += buf.size
             i += maxBuffer
+            updateProgress()
         }
-        SystemClock.sleep(500)
-        return sendData(eof)
+        tcpSocket.close()
+        return true
     }
 
     private fun getFileName(uri : Uri, cr : ContentResolver) : String {
@@ -266,6 +289,14 @@ class TcpClient(serverAddress: String, serverPort: String, buffer: Int = 1024) {
         return result
     }
 
+    private fun updateProgress() {
+        var progress  = 0.0f
+        if (fileSize > 0) {
+            progress = (bytesSent.toFloat()/fileSize.toFloat()) * 100.0f
+        }
+        progressBar.progress = progress.toInt()
+    }
+
     private fun stringToByteArray(data : String) : ByteArray {
         return data.toByteArray()
     }
@@ -274,14 +305,16 @@ class TcpClient(serverAddress: String, serverPort: String, buffer: Int = 1024) {
     }
 }
 
-class TcpServer(applicationContext : Context) {
+class TcpServer(applicationContext : Context, progressBar: ProgressBar, buffer : Int = 1024) {
     private val applicationContext = applicationContext
     private val port : Int = 20001
     private var tcpSocket : ServerSocket? = null
     private var socket : Socket? = null
+    private val maxBuffer = buffer
     private var bytesRead = 0
     private var fileSize = 0
     private var fileName = ""
+    private val progressBar = progressBar
 
     init {
         tcpSocket = ServerSocket(port)
@@ -294,7 +327,7 @@ class TcpServer(applicationContext : Context) {
     }
 
     private fun receiveData() : ByteArray? {
-        val numOfBytes : Int = socket!!.inputStream.available()
+        val numOfBytes : Int = min(socket!!.inputStream.available(), maxBuffer)
         if(numOfBytes > 0) {
             var byteData = ByteArray(numOfBytes)
             socket!!.inputStream.read(byteData, 0, numOfBytes)
@@ -307,6 +340,7 @@ class TcpServer(applicationContext : Context) {
         var fileData : ByteArray? = null
         try {
             println("Waiting for connection")
+            progressBar.progress = bytesRead
             socket = tcpSocket!!.accept()
             println("Connected to ${socket!!.inetAddress}:${socket!!.port}")
             while (true) {
@@ -325,6 +359,7 @@ class TcpServer(applicationContext : Context) {
                     if (fileData != null) fileData += message
                     else fileData = message
                     bytesRead += message.size
+                    updateProgress()
                     if (bytesRead >= fileSize) {
                         println("File received.")
                         saveFile(fileData, fileName)
@@ -367,7 +402,14 @@ class TcpServer(applicationContext : Context) {
             println("File already exists, modify name...")
             saveFile(fileData, "$name", attempt + 1)
         }
+    }
 
+    private fun updateProgress() {
+        var progress  = 0.0f
+        if (fileSize > 0) {
+            progress = (bytesRead.toFloat()/fileSize.toFloat()) * 100.0f
+        }
+        progressBar.progress = progress.toInt()
     }
 
     private fun stringToByteArray(data : String) : ByteArray {
