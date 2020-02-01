@@ -198,7 +198,7 @@ class MainActivity : AppCompatActivity() {
 class TcpClient(serverAddress: String, serverPort: String, progressBar: ProgressBar, buffer: Int = 1024) {
     private val address : String = serverAddress
     private val port : Int = Integer.parseInt(serverPort)
-    private val maxBuffer : Int = buffer
+    private var maxBuffer : Int = buffer
     private var tcpSocket : Socket
     private var fileSize = 0
     private var bytesSent = 0
@@ -224,6 +224,16 @@ class TcpClient(serverAddress: String, serverPort: String, progressBar: Progress
         return true
     }
 
+    private fun receiveData() : ByteArray? {
+        val numOfBytes : Int = min(tcpSocket.inputStream.available(), tcpSocket.receiveBufferSize)
+        if(numOfBytes > 0) {
+            var byteData = ByteArray(numOfBytes)
+            tcpSocket.inputStream.read(byteData, 0, numOfBytes)
+            return byteData
+        }
+        return null
+    }
+
     fun sendFile(data : Uri, contentResolver : ContentResolver) : Boolean {
         var byteData : ByteArray?
         var cr : ContentResolver = contentResolver
@@ -237,7 +247,6 @@ class TcpClient(serverAddress: String, serverPort: String, progressBar: Progress
         progressBar.progress = bytesSent
         var fileName = getFileName(data, contentResolver)
         fileSize = byteData.size
-        var eof = stringToByteArray("<EOF>")
 
         if (!sendData(fileName)){
             return false
@@ -251,6 +260,7 @@ class TcpClient(serverAddress: String, serverPort: String, progressBar: Progress
         var i = 0
         println("Sending data...")
         while (i < byteData.size){
+            maxBuffer += tcpSocket.sendBufferSize
             var slice = i + maxBuffer - 1
             if (byteData.size < slice) {
                 slice = byteData.size -1
@@ -263,6 +273,8 @@ class TcpClient(serverAddress: String, serverPort: String, progressBar: Progress
             i += maxBuffer
             updateProgress()
         }
+        while (receiveData() == null)
+            ;
         tcpSocket.close()
         return true
     }
@@ -305,15 +317,16 @@ class TcpClient(serverAddress: String, serverPort: String, progressBar: Progress
     }
 }
 
-class TcpServer(applicationContext : Context, progressBar: ProgressBar, buffer : Int = 1024) {
+class TcpServer(applicationContext : Context, progressBar: ProgressBar) {
     private val applicationContext = applicationContext
     private val port : Int = 20001
     private var tcpSocket : ServerSocket? = null
     private var socket : Socket? = null
-    private val maxBuffer = buffer
+    private val maxBufferSize = 81920
     private var bytesRead = 0
     private var fileSize = 0
     private var fileName = ""
+    private val ACK_MSG = stringToByteArray("<ACK>")
     private val progressBar = progressBar
 
     init {
@@ -327,7 +340,8 @@ class TcpServer(applicationContext : Context, progressBar: ProgressBar, buffer :
     }
 
     private fun receiveData() : ByteArray? {
-        val numOfBytes : Int = min(socket!!.inputStream.available(), maxBuffer)
+//        val numOfBytes : Int = min(socket!!.inputStream.available(), socket!!.receiveBufferSize)
+        val numOfBytes : Int = min(socket!!.inputStream.available(), min(maxBufferSize, socket!!.receiveBufferSize))
         if(numOfBytes > 0) {
             var byteData = ByteArray(numOfBytes)
             socket!!.inputStream.read(byteData, 0, numOfBytes)
@@ -367,6 +381,7 @@ class TcpServer(applicationContext : Context, progressBar: ProgressBar, buffer :
                     }
                 }
             }
+            sendData(ACK_MSG)
             socket!!.close()
         }
         catch (e : UnknownHostException) {
