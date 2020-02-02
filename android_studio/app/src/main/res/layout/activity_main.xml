@@ -26,100 +26,91 @@
         android:layout_height="match_parent"
         app:defaultNavHost="true"
         app:navGraph="@navigation/mobile_navigation"
-        tools:layout_editor_absoluteX="119dp"
-        tools:layout_editor_absoluteY="40dp" />
+        tools:layout_editor_absoluteX="16dp"
+        tools:layout_editor_absoluteY="180dp" />
 
-    <Button
-        android:id="@+id/sendData"
-        android:layout_width="133dp"
+    <TextView
+        android:id="@+id/deviceAddress"
+        android:layout_width="350dp"
         android:layout_height="50dp"
-        android:layout_marginTop="64dp"
-        android:onClick="sendMessage"
-        android:text="@string/send_data"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.187"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/gallery" />
-
-    <Button
-        android:id="@+id/receiveData"
-        android:layout_width="133dp"
-        android:layout_height="50dp"
-        android:text="@string/receive_data"
-        app:layout_constraintBottom_toTopOf="@+id/nav_view"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.451"
-        app:layout_constraintStart_toEndOf="@+id/sendData"
-        app:layout_constraintTop_toTopOf="@+id/sendData"
-        app:layout_constraintVertical_bias="0.0" />
-
-    <com.google.android.material.textfield.TextInputEditText
-        android:id="@+id/address"
-        android:layout_width="314dp"
-        android:layout_height="74dp"
-        android:layout_marginTop="148dp"
+        android:layout_marginTop="100dp"
+        android:text="@string/device_ip_address"
+        android:textAppearance="@style/TextAppearance.AppCompat.Medium"
         android:hint="@string/address"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.298"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="@+id/nav_host_fragment" />
 
     <com.google.android.material.textfield.TextInputEditText
+        android:id="@+id/address"
+        android:layout_width="350dp"
+        android:layout_height="50dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/deviceAddress" />
+
+    <com.google.android.material.textfield.TextInputEditText
         android:id="@+id/port"
-        android:layout_width="180dp"
-        android:layout_height="57dp"
+        android:layout_width="120dp"
+        android:layout_height="50dp"
         android:hint="@string/port"
         android:text="@string/default_port"
-        app:layout_constraintBottom_toTopOf="@+id/imageView"
         app:layout_constraintStart_toStartOf="@+id/address"
-        app:layout_constraintTop_toBottomOf="@+id/address"
-        app:layout_constraintVertical_bias="0.0" />
-
-    <Button
-        android:id="@+id/gallery"
-        android:layout_width="116dp"
-        android:layout_height="55dp"
-        android:text="@string/gallery"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.198"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/imageView" />
-
-    <ImageView
-        android:id="@+id/imageView"
-        android:layout_width="117dp"
-        android:layout_height="112dp"
-        android:layout_marginTop="80dp"
-        android:contentDescription="@string/image_preview"
-        app:layout_constraintEnd_toEndOf="@+id/gallery"
-        app:layout_constraintHorizontal_bias="0.0"
-        app:layout_constraintStart_toStartOf="@+id/gallery"
-        app:layout_constraintTop_toBottomOf="@+id/address"
-        app:srcCompat="@android:color/background_light" />
+        app:layout_constraintTop_toBottomOf="@+id/address" />
 
     <TextView
-        android:id="@+id/deviceAddress"
-        android:layout_width="313dp"
-        android:layout_height="47dp"
-        android:text="@string/device_ip_address"
+        android:id="@+id/filePath"
+        android:layout_width="350dp"
+        android:layout_height="50dp"
+        android:layout_marginTop="35dp"
+        android:text="@string/filePath"
         android:textAppearance="@style/TextAppearance.AppCompat.Medium"
-        app:layout_constraintBottom_toTopOf="@+id/address"
+        app:layout_constraintBottom_toTopOf="@+id/progressBar"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.295"
+        app:layout_constraintHorizontal_bias="0.508"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="@+id/nav_host_fragment"
-        app:layout_constraintVertical_bias="1.0" />
+        app:layout_constraintTop_toBottomOf="@+id/port"
+        app:layout_constraintVertical_bias="0.3" />
+
+    <Button
+        android:id="@+id/selectFile"
+        android:layout_width="120dp"
+        android:layout_height="50dp"
+        android:text="@string/file"
+        app:layout_constraintStart_toStartOf="@+id/filePath"
+        app:layout_constraintTop_toBottomOf="@+id/filePath" />
 
     <ProgressBar
         android:id="@+id/progressBar"
         style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="350dp"
+        android:layout_height="35dp"
+        android:layout_marginBottom="30dp"
         android:max="100"
         android:progress="0"
-        android:layout_width="308dp"
-        android:layout_height="29dp"
         app:layout_constraintBottom_toTopOf="@+id/sendData"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/gallery" />
+        app:layout_constraintHorizontal_bias="0.508"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <Button
+        android:id="@+id/sendData"
+        android:layout_width="150dp"
+        android:layout_height="50dp"
+        android:layout_marginBottom="50dp"
+        android:text="@string/send_data"
+        app:layout_constraintBottom_toTopOf="@+id/nav_view"
+        app:layout_constraintEnd_toStartOf="@id/receiveData"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <Button
+        android:id="@+id/receiveData"
+        android:layout_width="150dp"
+        android:layout_height="50dp"
+        android:layout_marginBottom="50dp"
+        android:text="@string/receive_data"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/sendData"
+        app:layout_constraintBottom_toTopOf="@+id/nav_view" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

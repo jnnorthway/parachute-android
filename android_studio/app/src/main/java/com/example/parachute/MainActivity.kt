@@ -3,14 +3,13 @@ package com.example.parachute
 import android.Manifest
 import android.app.Activity
 import android.app.DownloadManager
+import android.content.ClipData
 import android.content.ContentResolver
 import android.content.Context
 import android.content.Context.DOWNLOAD_SERVICE
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.database.Cursor
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.net.Uri
 import android.net.wifi.WifiInfo
 import android.net.wifi.WifiManager
@@ -22,7 +21,6 @@ import android.os.SystemClock
 import android.provider.OpenableColumns
 import android.text.format.Formatter
 import android.widget.*
-import androidx.annotation.UiThread
 import androidx.appcompat.app.AppCompatActivity
 import androidx.navigation.findNavController
 import androidx.navigation.ui.AppBarConfiguration
@@ -30,6 +28,7 @@ import androidx.navigation.ui.setupActionBarWithNavController
 import androidx.navigation.ui.setupWithNavController
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.textfield.TextInputEditText
+import kotlinx.android.synthetic.main.activity_main.*
 import org.jetbrains.anko.doAsync
 import org.jetbrains.anko.uiThread
 import java.io.*
@@ -37,21 +36,21 @@ import java.net.InetAddress
 import java.net.ServerSocket
 import java.net.Socket
 import java.net.UnknownHostException
-import java.util.Collections.max
-import java.util.Collections.min
-import kotlin.math.max
+import java.util.concurrent.Future
+import java.util.concurrent.FutureTask
 import kotlin.math.min
 
 
 class MainActivity : AppCompatActivity() {
-    private var data : Intent? = null
+    private var data : Uri? = null
+    private val addressBase = "Device IP Address: "
+    private val fileBase = "File: "
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         val navView: BottomNavigationView = findViewById(R.id.nav_view)
-
         val navController = findNavController(R.id.nav_host_fragment)
-
+        val intentData : Intent = intent
         // Passing each menu ID as a set of Ids because each
         // menu should be considered as top level destinations.
         val appBarConfiguration = AppBarConfiguration(
@@ -65,11 +64,13 @@ class MainActivity : AppCompatActivity() {
         // Get views
         val sendButton: Button = findViewById(R.id.sendData)
         val receiveButton: Button = findViewById(R.id.receiveData)
-        val gallery: Button = findViewById(R.id.gallery)
-        val deviceAddress : TextView = findViewById(R.id.deviceAddress)
+        val selectButton: Button = findViewById(R.id.selectFile)
         val address: TextInputEditText = findViewById((R.id.address))
         val port: TextInputEditText = findViewById(R.id.port)
         val progressBar : ProgressBar = findViewById(R.id.progressBar)
+        var tcpServer : TcpServer? = null
+        var t : Future<Unit>? = null
+        getIpAddress()
 
         if (VERSION.SDK_INT >= VERSION_CODES.M) {
             if (checkSelfPermission(Manifest.permission.INTERNET) == PackageManager.PERMISSION_DENIED) {
@@ -79,15 +80,20 @@ class MainActivity : AppCompatActivity() {
                 requestPermissions(permissions, PERMISSION_CODE)
             }
         }
-//        if (VERSION.SDK_INT >= VERSION_CODES.M) {
-//            if (checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_DENIED) {
-//                //permission denied
-//                val permissions = arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE)
-//                //show popup to request runtime permission
-//                requestPermissions(permissions, PERMISSION_CODE)
-//            }
-//        }
-        gallery.setOnClickListener {
+
+        if (intentData?.action == Intent.ACTION_SEND) {
+            if (VERSION.SDK_INT >= VERSION_CODES.JELLY_BEAN) {
+                var items = intentData.clipData!!.itemCount
+                var item : ClipData.Item = intentData.clipData!!.getItemAt(items-1)
+                data = item.uri
+                filePath.text = fileBase + getFileName(data!!, baseContext.contentResolver)
+            }
+            else {
+                Toast.makeText(applicationContext, "This device is not capable of this feature.", Toast.LENGTH_LONG).show()
+            }
+        }
+
+        selectButton.setOnClickListener {
             //check runtime permission
             if (VERSION.SDK_INT >= VERSION_CODES.M) {
                 if (checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) ==
@@ -99,21 +105,28 @@ class MainActivity : AppCompatActivity() {
                     requestPermissions(permissions, PERMISSION_CODE)
                 } else {
                     //permission already granted
-                    pickImageFromGallery()
+                    getFile()
                 }
             } else {
                 //system OS is < Marshmallow
-                pickImageFromGallery()
+                getFile()
             }
         }
 
-        deviceAddress.text = deviceAddress.text.toString() + getIpAddress()
-
         receiveButton.setOnClickListener {
             // Receive file from client
-            doAsync {
-                val tcpServer = TcpServer(applicationContext, progressBar)
-                tcpServer.receiveFile()
+            if (t != null) {
+                if (!t!!.isDone) {
+                    // Not working
+                    t!!.cancel(true)
+                }
+            }
+            t = doAsync {
+                if (tcpServer != null){
+                    tcpServer!!.close()
+                }
+                tcpServer = TcpServer(applicationContext, progressBar)
+                tcpServer!!.receiveFile()
                 uiThread{
                     Toast.makeText(applicationContext, "File received.", Toast.LENGTH_LONG).show()
                 }
@@ -126,7 +139,7 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(applicationContext, "Data Sending", Toast.LENGTH_SHORT).show()
             doAsync {
                 val tcpClient = TcpClient(editTextToString(address), editTextToString(port), progressBar)
-                val dataSent = tcpClient.sendFile(data!!.data!!, baseContext.contentResolver)
+                val dataSent = tcpClient.sendFile(data!!, baseContext.contentResolver)
                 uiThread{
                     if (dataSent) {
                         Toast.makeText(applicationContext, "Data send successful", Toast.LENGTH_LONG).show()
@@ -138,30 +151,27 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun getIpAddress() :String {
+    @SuppressWarnings("deprecation")
+    private fun getIpAddress() {
         val wifiMgr : WifiManager = applicationContext.getSystemService(WIFI_SERVICE) as WifiManager
         val wifiInfo : WifiInfo = wifiMgr.connectionInfo
         val ip : Int = wifiInfo.ipAddress
-        return Formatter.formatIpAddress(ip)
+        val ipAddress = Formatter.formatIpAddress(ip)
+        deviceAddress.text = addressBase + ipAddress
     }
 
-//    private fun getDocument() {
-//        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
-//        startActivityForResult(intent, OPEN_DIRECTORY_REQUEST_CODE)
-//    }
-
-    private fun pickImageFromGallery() {
-        //Intent to pick image
-        val intent = Intent(Intent.ACTION_PICK)
-        intent.type = "image/*"
-        startActivityForResult(intent, IMAGE_PICK_CODE)
+    private fun getFile() {
+        val intent = Intent(Intent.ACTION_GET_CONTENT)
+        intent.type = "*/*"
+        intent.addCategory(Intent.CATEGORY_DEFAULT)
+        startActivityForResult(intent, REQUEST_CODE)
     }
 
     companion object {
-        //image pick code
-        private val IMAGE_PICK_CODE = 1000
+        //generic code
+        private const val REQUEST_CODE = 43
         //Permission code
-        private val PERMISSION_CODE = 1001
+        private const val PERMISSION_CODE = 1001
     }
 
     //handle requested permission result
@@ -170,7 +180,7 @@ class MainActivity : AppCompatActivity() {
             PERMISSION_CODE -> {
                 if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED){
                     //permission from popup granted
-                    pickImageFromGallery()
+                    getFile()
                 }
                 else{
                     //permission from popup denied
@@ -182,10 +192,12 @@ class MainActivity : AppCompatActivity() {
 
     //handle result of picked image
     override fun onActivityResult(requestCode: Int, resultCode: Int, intent: Intent?) {
-        if (resultCode == Activity.RESULT_OK && requestCode == IMAGE_PICK_CODE){
-            val image : ImageView = findViewById(R.id.imageView)
-            image.setImageURI(intent?.data)
-            data = intent
+         if (requestCode == REQUEST_CODE && resultCode == Activity.RESULT_OK){
+            if (intent != null){
+                val uri : Uri = intent!!.data!!
+                filePath.text = fileBase + getFileName(uri, baseContext.contentResolver)
+                data = intent.data
+            }
         }
     }
 
@@ -235,13 +247,9 @@ class TcpClient(serverAddress: String, serverPort: String, progressBar: Progress
     }
 
     fun sendFile(data : Uri, contentResolver : ContentResolver) : Boolean {
-        var byteData : ByteArray?
         var cr : ContentResolver = contentResolver
         var inputStream : InputStream? = cr.openInputStream(data)
-        var bitmap : Bitmap = BitmapFactory.decodeStream(inputStream)
-        var byteArray = ByteArrayOutputStream()
-        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, byteArray)
-        byteData = byteArray.toByteArray()
+        val byteData = inputStream!!.readBytes()
         println("byte data size: " + byteData.size)
 
         progressBar.progress = bytesSent
@@ -279,28 +287,6 @@ class TcpClient(serverAddress: String, serverPort: String, progressBar: Progress
         return true
     }
 
-    private fun getFileName(uri : Uri, cr : ContentResolver) : String {
-        var result : String? = null
-        if (uri.scheme.equals("content")) {
-            var cursor : Cursor? = cr.query(uri, null, null, null, null)
-            try {
-                if (cursor != null && cursor.moveToFirst()) {
-                    result = cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME))
-                }
-            } finally {
-                cursor?.close()
-            }
-        }
-        if (result == null) {
-            result = uri.path!!
-            var cut : Int = result.lastIndexOf('/')
-            if (cut != -1) {
-                result = result.substring(cut + 1)
-            }
-        }
-        return result
-    }
-
     private fun updateProgress() {
         var progress  = 0.0f
         if (fileSize > 0) {
@@ -326,7 +312,7 @@ class TcpServer(applicationContext : Context, progressBar: ProgressBar) {
     private var bytesRead = 0
     private var fileSize = 0
     private var fileName = ""
-    private val ACK_MSG = stringToByteArray("<ACK>")
+    private val ACKMSG = stringToByteArray("<ACK>")
     private val progressBar = progressBar
 
     init {
@@ -340,7 +326,6 @@ class TcpServer(applicationContext : Context, progressBar: ProgressBar) {
     }
 
     private fun receiveData() : ByteArray? {
-//        val numOfBytes : Int = min(socket!!.inputStream.available(), socket!!.receiveBufferSize)
         val numOfBytes : Int = min(socket!!.inputStream.available(), min(maxBufferSize, socket!!.receiveBufferSize))
         if(numOfBytes > 0) {
             var byteData = ByteArray(numOfBytes)
@@ -381,7 +366,7 @@ class TcpServer(applicationContext : Context, progressBar: ProgressBar) {
                     }
                 }
             }
-            sendData(ACK_MSG)
+            sendData(ACKMSG)
             socket!!.close()
         }
         catch (e : UnknownHostException) {
@@ -410,7 +395,7 @@ class TcpServer(applicationContext : Context, progressBar: ProgressBar) {
             val fileStream = FileOutputStream(file)
             fileStream.write(fileData)
             val downloadManager = applicationContext.getSystemService(DOWNLOAD_SERVICE) as DownloadManager
-            downloadManager.addCompletedDownload(file.name, file.name, true, "plain/text", file.absolutePath,file.length(),true)
+            downloadManager.addCompletedDownload(file.name, file.name, true, "*/*", file.absolutePath,file.length(),true)
             println("File written!")
             true
         } else {
@@ -427,6 +412,10 @@ class TcpServer(applicationContext : Context, progressBar: ProgressBar) {
         progressBar.progress = progress.toInt()
     }
 
+    fun close() {
+        socket!!.close()
+    }
+
     private fun stringToByteArray(data : String) : ByteArray {
         return data.toByteArray()
     }
@@ -439,4 +428,26 @@ class TcpServer(applicationContext : Context, progressBar: ProgressBar) {
     private fun byteArrayToInt(data : ByteArray) : Int {
         return Integer.parseInt(byteArrayToString(data))
     }
+}
+
+fun getFileName(uri : Uri, cr : ContentResolver) : String {
+    var result : String? = null
+    if (uri.scheme.equals("content")) {
+        var cursor : Cursor? = cr.query(uri, null, null, null, null)
+        try {
+            if (cursor != null && cursor.moveToFirst()) {
+                result = cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME))
+            }
+        } finally {
+            cursor?.close()
+        }
+    }
+    if (result == null) {
+        result = uri.path!!
+        var cut : Int = result.lastIndexOf('/')
+        if (cut != -1) {
+            result = result.substring(cut + 1)
+        }
+    }
+    return result
 }
