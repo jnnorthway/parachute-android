@@ -2,13 +2,12 @@
     <string name="app_name">parachute</string>
     <string name="title_home">Home</string>
     <string name="title_dashboard">Dashboard</string>
-    <string name="title_notifications">Notifications</string>
     <string name="send_data">Send data</string>
+    <string name="title_notifications">Notifications</string>
     <string name="address">Address</string>
     <string name="port">Port</string>
-    <string name="default_port">20001</string>
     <string name="file">Select File</string>
     <string name="filePath">File: </string>
-    <string name="device_ip_address">Device IP Address:</string>
-    <string name="receive_data">receive data</string>
+    <string name="default_port">20001</string>
+    <string name="device_ip_address">Device IP Address: </string>
 </resources>

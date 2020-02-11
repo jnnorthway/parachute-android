@@ -2,12 +2,10 @@ package com.example.parachute
 
 import android.Manifest
 import android.app.Activity
+import android.app.AlertDialog
 import android.app.DownloadManager
-import android.content.ClipData
-import android.content.ContentResolver
-import android.content.Context
+import android.content.*
 import android.content.Context.DOWNLOAD_SERVICE
-import android.content.Intent
 import android.content.pm.PackageManager
 import android.database.Cursor
 import android.net.Uri
@@ -26,6 +24,7 @@ import androidx.navigation.findNavController
 import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.setupActionBarWithNavController
 import androidx.navigation.ui.setupWithNavController
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.textfield.TextInputEditText
 import kotlinx.android.synthetic.main.activity_main.*
@@ -36,41 +35,31 @@ import java.net.InetAddress
 import java.net.ServerSocket
 import java.net.Socket
 import java.net.UnknownHostException
-import java.util.concurrent.Future
-import java.util.concurrent.FutureTask
 import kotlin.math.min
 
 
 class MainActivity : AppCompatActivity() {
     private var data : Uri? = null
-    private val addressBase = "Device IP Address: "
-    private val fileBase = "File: "
+    private var tcpServer : TcpServer? = null
+    private var fileBase = ""
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        val navView: BottomNavigationView = findViewById(R.id.nav_view)
-        val navController = findNavController(R.id.nav_host_fragment)
         val intentData : Intent = intent
-        // Passing each menu ID as a set of Ids because each
-        // menu should be considered as top level destinations.
-        val appBarConfiguration = AppBarConfiguration(
-            setOf(
-                R.id.navigation_home, R.id.navigation_dashboard, R.id.navigation_notifications
-            )
-        )
-        setupActionBarWithNavController(navController, appBarConfiguration)
-        navView.setupWithNavController(navController)
-
+        // Get strings
+        var fileBase = getString(R.string.filePath)
         // Get views
         val sendButton: Button = findViewById(R.id.sendData)
-        val receiveButton: Button = findViewById(R.id.receiveData)
         val selectButton: Button = findViewById(R.id.selectFile)
         val address: TextInputEditText = findViewById((R.id.address))
         val port: TextInputEditText = findViewById(R.id.port)
         val progressBar : ProgressBar = findViewById(R.id.progressBar)
-        var tcpServer : TcpServer? = null
-        var t : Future<Unit>? = null
-        getIpAddress()
+        initialize()
+        val pullToRefresh : SwipeRefreshLayout = findViewById(R.id.pullToRefresh)
+        pullToRefresh.setOnRefreshListener{
+            initialize()
+            pullToRefresh.isRefreshing = false
+        }
 
         if (VERSION.SDK_INT >= VERSION_CODES.M) {
             if (checkSelfPermission(Manifest.permission.INTERNET) == PackageManager.PERMISSION_DENIED) {
@@ -81,7 +70,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        if (intentData?.action == Intent.ACTION_SEND) {
+        if (intentData.action == Intent.ACTION_SEND) {
             if (VERSION.SDK_INT >= VERSION_CODES.JELLY_BEAN) {
                 var items = intentData.clipData!!.itemCount
                 var item : ClipData.Item = intentData.clipData!!.getItemAt(items-1)
@@ -113,27 +102,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        receiveButton.setOnClickListener {
-            // Receive file from client
-            if (t != null) {
-                if (!t!!.isDone) {
-                    // Not working
-                    t!!.cancel(true)
-                }
-            }
-            t = doAsync {
-                if (tcpServer != null){
-                    tcpServer!!.close()
-                }
-                tcpServer = TcpServer(applicationContext, progressBar)
-                tcpServer!!.receiveFile()
-                uiThread{
-                    Toast.makeText(applicationContext, "File received.", Toast.LENGTH_LONG).show()
-                }
-            }
-            Toast.makeText(applicationContext, "Device ready to receive data.", Toast.LENGTH_LONG).show()
-        }
-
         sendButton.setOnClickListener {
             // Send file to sever
             Toast.makeText(applicationContext, "Data Sending", Toast.LENGTH_SHORT).show()
@@ -151,13 +119,56 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun initialize() {
+        getIpAddress()
+        listen()
+    }
+
     @SuppressWarnings("deprecation")
     private fun getIpAddress() {
         val wifiMgr : WifiManager = applicationContext.getSystemService(WIFI_SERVICE) as WifiManager
         val wifiInfo : WifiInfo = wifiMgr.connectionInfo
         val ip : Int = wifiInfo.ipAddress
         val ipAddress = Formatter.formatIpAddress(ip)
-        deviceAddress.text = addressBase + ipAddress
+        deviceAddress.text = getString(R.string.device_ip_address) + ipAddress
+    }
+
+    private fun dialog(address : String): AlertDialog? {
+        val builder = AlertDialog.Builder(this@MainActivity)
+        builder.setCancelable(true)
+        builder.setTitle("Receive")
+        builder.setMessage("Receive file from $address?")
+            .setPositiveButton("Confirm"
+            ) { _, _ ->
+                doAsync {
+                    tcpServer!!.receiveFile()
+                    uiThread{
+                        Toast.makeText(applicationContext, "File received.", Toast.LENGTH_LONG).show()
+                        listen()
+                    }
+                }
+            }
+            .setNegativeButton("Cancel"
+            ) { _, _ ->
+                Toast.makeText(applicationContext, "Cancelled.", Toast.LENGTH_LONG).show()
+                listen()
+            }
+        return builder.create()
+    }
+
+    private fun listen() {
+        // Listening for incoming connections
+        doAsync {
+            if (tcpServer != null){
+                tcpServer!!.close()
+            }
+            tcpServer = TcpServer(applicationContext, progressBar)
+            tcpServer!!.listen()
+            uiThread {
+                var dialog = dialog(tcpServer!!.incomingAddr)
+                dialog!!.show()
+            }
+        }
     }
 
     private fun getFile() {
@@ -194,7 +205,7 @@ class MainActivity : AppCompatActivity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, intent: Intent?) {
          if (requestCode == REQUEST_CODE && resultCode == Activity.RESULT_OK){
             if (intent != null){
-                val uri : Uri = intent!!.data!!
+                val uri : Uri = intent.data!!
                 filePath.text = fileBase + getFileName(uri, baseContext.contentResolver)
                 data = intent.data
             }
@@ -312,6 +323,7 @@ class TcpServer(applicationContext : Context, progressBar: ProgressBar) {
     private var bytesRead = 0
     private var fileSize = 0
     private var fileName = ""
+    var incomingAddr = ""
     private val ACKMSG = stringToByteArray("<ACK>")
     private val progressBar = progressBar
 
@@ -335,13 +347,17 @@ class TcpServer(applicationContext : Context, progressBar: ProgressBar) {
         return null
     }
 
+    fun listen() {
+        println("Waiting for connection")
+        socket = tcpSocket!!.accept()
+        println("Connected to ${socket!!.inetAddress}:${socket!!.port}")
+        incomingAddr = socket!!.inetAddress.hostAddress
+    }
+
     fun receiveFile() {
         var fileData : ByteArray? = null
         try {
-            println("Waiting for connection")
             progressBar.progress = bytesRead
-            socket = tcpSocket!!.accept()
-            println("Connected to ${socket!!.inetAddress}:${socket!!.port}")
             while (true) {
                 var message : ByteArray = receiveData() ?: continue
                 if (fileName == ""){
@@ -367,7 +383,7 @@ class TcpServer(applicationContext : Context, progressBar: ProgressBar) {
                 }
             }
             sendData(ACKMSG)
-            socket!!.close()
+            this.close()
         }
         catch (e : UnknownHostException) {
             println("ERROR")
@@ -414,6 +430,8 @@ class TcpServer(applicationContext : Context, progressBar: ProgressBar) {
 
     fun close() {
         socket!!.close()
+        tcpSocket!!.close()
+        progressBar.progress = 0
     }
 
     private fun stringToByteArray(data : String) : ByteArray {
