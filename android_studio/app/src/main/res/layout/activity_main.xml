@@ -4,22 +4,29 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/container"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:paddingTop="?attr/actionBarSize">
+    android:layout_height="match_parent">
 
     <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
         android:id="@+id/pullToRefresh"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        app:layout_constraintBottom_toBottomOf="parent">
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
         <LinearLayout
             android:id="@+id/lin_view"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:orientation="vertical"
             android:paddingLeft="16dp"
-            android:paddingRight="16dp"
-            android:orientation="vertical" />
+            android:paddingRight="16dp" />
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toTopOf="parent"/>
 
     <fragment
         android:id="@+id/nav_host_fragment"
@@ -35,7 +42,7 @@
         android:id="@+id/deviceAddress"
         android:layout_width="350dp"
         android:layout_height="50dp"
-        android:layout_marginTop="100dp"
+        android:layout_marginTop="150dp"
         android:text="@string/device_ip_address"
         android:textAppearance="@style/TextAppearance.AppCompat.Medium"
         android:hint="@string/address"
@@ -51,15 +58,6 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/deviceAddress" />
 
-    <com.google.android.material.textfield.TextInputEditText
-        android:id="@+id/port"
-        android:layout_width="120dp"
-        android:layout_height="50dp"
-        android:hint="@string/port"
-        android:text="@string/default_port"
-        app:layout_constraintStart_toStartOf="@+id/address"
-        app:layout_constraintTop_toBottomOf="@+id/address" />
-
     <TextView
         android:id="@+id/filePath"
         android:layout_width="350dp"
@@ -71,7 +69,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.508"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/port"
+        app:layout_constraintTop_toBottomOf="@+id/address"
         app:layout_constraintVertical_bias="0.3" />
 
     <Button

@@ -18,14 +18,12 @@ import android.os.Environment
 import android.os.SystemClock
 import android.provider.OpenableColumns
 import android.text.format.Formatter
+import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.navigation.findNavController
 import androidx.navigation.ui.AppBarConfiguration
-import androidx.navigation.ui.setupActionBarWithNavController
-import androidx.navigation.ui.setupWithNavController
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.textfield.TextInputEditText
 import kotlinx.android.synthetic.main.activity_main.*
 import org.jetbrains.anko.doAsync
@@ -45,6 +43,24 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+//        val navController = findNavController(R.id.nav_host_fragment)
+//        val appBarConfiguration = AppBarConfiguration(navController.graph)
+//        findViewById<Toolbar>(R.id.toolbar)
+//            .setupWithNavController(navController, appBarConfiguration)
+//
+//        navController.addOnDestinationChangedListener { _, destination, _ ->
+//            if(destination.id == R.id.full_screen_destination) {
+//                toolbar.visibility = View.GONE
+//                bottomNavigationView.visibility = View.GONE
+//            } else {
+//                toolbar.visibility = View.VISIBLE
+//                bottomNavigationView.visibility = View.VISIBLE
+//            }
+//        }
+
+
+
         val intentData : Intent = intent
         // Get strings
         var fileBase = getString(R.string.filePath)
@@ -52,7 +68,6 @@ class MainActivity : AppCompatActivity() {
         val sendButton: Button = findViewById(R.id.sendData)
         val selectButton: Button = findViewById(R.id.selectFile)
         val address: TextInputEditText = findViewById((R.id.address))
-        val port: TextInputEditText = findViewById(R.id.port)
         val progressBar : ProgressBar = findViewById(R.id.progressBar)
         initialize()
         val pullToRefresh : SwipeRefreshLayout = findViewById(R.id.pullToRefresh)
@@ -106,7 +121,7 @@ class MainActivity : AppCompatActivity() {
             // Send file to sever
             Toast.makeText(applicationContext, "Data Sending", Toast.LENGTH_SHORT).show()
             doAsync {
-                val tcpClient = TcpClient(editTextToString(address), editTextToString(port), progressBar)
+                val tcpClient = TcpClient(editTextToString(address), progressBar)
                 val dataSent = tcpClient.sendFile(data!!, baseContext.contentResolver)
                 uiThread{
                     if (dataSent) {
@@ -130,7 +145,7 @@ class MainActivity : AppCompatActivity() {
         val wifiInfo : WifiInfo = wifiMgr.connectionInfo
         val ip : Int = wifiInfo.ipAddress
         val ipAddress = Formatter.formatIpAddress(ip)
-        deviceAddress.text = getString(R.string.device_ip_address) + ipAddress
+        deviceAddress.text = "${getString(R.string.device_ip_address)} $ipAddress"
     }
 
     private fun dialog(address : String): AlertDialog? {
@@ -218,9 +233,7 @@ class MainActivity : AppCompatActivity() {
 }
 
 
-class TcpClient(serverAddress: String, serverPort: String, progressBar: ProgressBar, buffer: Int = 1024) {
-    private val address : String = serverAddress
-    private val port : Int = Integer.parseInt(serverPort)
+class TcpClient(serverAddress: String, progressBar: ProgressBar, port: Int = 20001, buffer: Int = 1024) {
     private var maxBuffer : Int = buffer
     private var tcpSocket : Socket
     private var fileSize = 0
@@ -228,7 +241,7 @@ class TcpClient(serverAddress: String, serverPort: String, progressBar: Progress
     private val progressBar = progressBar
 
     init {
-        val ip = InetAddress.getByName(address)
+        val ip = InetAddress.getByName(serverAddress)
         tcpSocket = Socket(ip!!, port)
     }
 

@@ -5,9 +5,7 @@
     <string name="send_data">Send data</string>
     <string name="title_notifications">Notifications</string>
     <string name="address">Address</string>
-    <string name="port">Port</string>
     <string name="file">Select File</string>
     <string name="filePath">File: </string>
-    <string name="default_port">20001</string>
     <string name="device_ip_address">Device IP Address: </string>
 </resources>
