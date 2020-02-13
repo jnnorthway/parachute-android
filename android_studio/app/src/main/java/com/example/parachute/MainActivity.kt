@@ -1,9 +1,7 @@
 package com.example.parachute
 
 import android.Manifest
-import android.app.Activity
-import android.app.AlertDialog
-import android.app.DownloadManager
+import android.app.*
 import android.content.*
 import android.content.Context.DOWNLOAD_SERVICE
 import android.content.pm.PackageManager
@@ -21,6 +19,7 @@ import android.text.format.Formatter
 import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.NotificationCompat
 import androidx.navigation.findNavController
 import androidx.navigation.ui.AppBarConfiguration
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
@@ -37,101 +36,41 @@ import kotlin.math.min
 
 
 class MainActivity : AppCompatActivity() {
-    private var data : Uri? = null
-    private var tcpServer : TcpServer? = null
-    private var fileBase = ""
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         setContentView(R.layout.activity_main)
-
-//        val navController = findNavController(R.id.nav_host_fragment)
-//        val appBarConfiguration = AppBarConfiguration(navController.graph)
-//        findViewById<Toolbar>(R.id.toolbar)
-//            .setupWithNavController(navController, appBarConfiguration)
-//
-//        navController.addOnDestinationChangedListener { _, destination, _ ->
-//            if(destination.id == R.id.full_screen_destination) {
-//                toolbar.visibility = View.GONE
-//                bottomNavigationView.visibility = View.GONE
-//            } else {
-//                toolbar.visibility = View.VISIBLE
-//                bottomNavigationView.visibility = View.VISIBLE
-//            }
-//        }
-
-
-
-        val intentData : Intent = intent
-        // Get strings
-        var fileBase = getString(R.string.filePath)
-        // Get views
-        val sendButton: Button = findViewById(R.id.sendData)
-        val selectButton: Button = findViewById(R.id.selectFile)
-        val address: TextInputEditText = findViewById((R.id.address))
-        val progressBar : ProgressBar = findViewById(R.id.progressBar)
-        initialize()
-        val pullToRefresh : SwipeRefreshLayout = findViewById(R.id.pullToRefresh)
+        getPermissions()
+        // Listeners
         pullToRefresh.setOnRefreshListener{
             initialize()
             pullToRefresh.isRefreshing = false
         }
-
-        if (VERSION.SDK_INT >= VERSION_CODES.M) {
-            if (checkSelfPermission(Manifest.permission.INTERNET) == PackageManager.PERMISSION_DENIED) {
-                //permission denied
-                val permissions = arrayOf(Manifest.permission.INTERNET)
-                //show popup to request runtime permission
-                requestPermissions(permissions, PERMISSION_CODE)
-            }
+        selectFile.setOnClickListener {
+            getFile()
         }
-
-        if (intentData.action == Intent.ACTION_SEND) {
-            if (VERSION.SDK_INT >= VERSION_CODES.JELLY_BEAN) {
-                var items = intentData.clipData!!.itemCount
-                var item : ClipData.Item = intentData.clipData!!.getItemAt(items-1)
-                data = item.uri
-                filePath.text = fileBase + getFileName(data!!, baseContext.contentResolver)
-            }
-            else {
-                Toast.makeText(applicationContext, "This device is not capable of this feature.", Toast.LENGTH_LONG).show()
-            }
+        sendData.setOnClickListener {
+            sendFile()
         }
+    }
 
-        selectButton.setOnClickListener {
-            //check runtime permission
-            if (VERSION.SDK_INT >= VERSION_CODES.M) {
-                if (checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) ==
-                    PackageManager.PERMISSION_DENIED
-                ) {
-                    //permission denied
-                    val permissions = arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
-                    //show popup to request runtime permission
-                    requestPermissions(permissions, PERMISSION_CODE)
-                } else {
-                    //permission already granted
-                    getFile()
-                }
-            } else {
-                //system OS is < Marshmallow
-                getFile()
-            }
+    override fun onStart() {
+        super.onStart()
+        initialize()
+        if (intent.action == Intent.ACTION_SEND) {
+            shareIntent(intent)
         }
+    }
 
-        sendButton.setOnClickListener {
-            // Send file to sever
-            Toast.makeText(applicationContext, "Data Sending", Toast.LENGTH_SHORT).show()
-            doAsync {
-                val tcpClient = TcpClient(editTextToString(address), progressBar)
-                val dataSent = tcpClient.sendFile(data!!, baseContext.contentResolver)
-                uiThread{
-                    if (dataSent) {
-                        Toast.makeText(applicationContext, "Data send successful", Toast.LENGTH_LONG).show()
-                    } else {
-                        Toast.makeText(applicationContext, "Data send failed", Toast.LENGTH_LONG).show()
-                    }
-                }
-            }
-        }
+    companion object {
+        //generic code
+        private const val REQUEST_CODE = 43
+        //Permission code
+        private const val PERMISSION_CODE = 1001
+
+        private var data : Uri? = null
+        private var tcpServer : TcpServer? = null
     }
 
     private fun initialize() {
@@ -139,7 +78,7 @@ class MainActivity : AppCompatActivity() {
         listen()
     }
 
-    @SuppressWarnings("deprecation")
+    @Suppress("DEPRECATION")
     private fun getIpAddress() {
         val wifiMgr : WifiManager = applicationContext.getSystemService(WIFI_SERVICE) as WifiManager
         val wifiInfo : WifiInfo = wifiMgr.connectionInfo
@@ -148,23 +87,53 @@ class MainActivity : AppCompatActivity() {
         deviceAddress.text = "${getString(R.string.device_ip_address)} $ipAddress"
     }
 
+    private fun shareIntent(intentData : Intent){
+        if (VERSION.SDK_INT >= VERSION_CODES.JELLY_BEAN) {
+            var fileBase = getString(R.string.filePath)
+            var items = intentData.clipData!!.itemCount
+            var item : ClipData.Item = intentData.clipData!!.getItemAt(items-1)
+            data = item.uri
+            filePath.text = fileBase + getFileName(data!!, baseContext.contentResolver)
+        }
+        else {
+            Toast.makeText(applicationContext, "This device is not capable of this feature.", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun sendFile() {
+        Toast.makeText(applicationContext, "Data Sending", Toast.LENGTH_SHORT).show()
+        doAsync {
+            val tcpClient = TcpClient(editTextToString(address), progressBar)
+            val dataSent = tcpClient.sendFile(data!!, baseContext.contentResolver)
+            uiThread{
+                if (dataSent) {
+                    Toast.makeText(applicationContext, "Data send successful", Toast.LENGTH_LONG).show()
+                } else {
+                    Toast.makeText(applicationContext, "Data send failed", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+    }
+
+    private fun receiveFile() {
+        doAsync {
+            tcpServer!!.receiveFile()
+            uiThread{
+                Toast.makeText(applicationContext, "File received.", Toast.LENGTH_LONG).show()
+                listen()
+            }
+        }
+    }
+
     private fun dialog(address : String): AlertDialog? {
         val builder = AlertDialog.Builder(this@MainActivity)
         builder.setCancelable(true)
         builder.setTitle("Receive")
         builder.setMessage("Receive file from $address?")
-            .setPositiveButton("Confirm"
-            ) { _, _ ->
-                doAsync {
-                    tcpServer!!.receiveFile()
-                    uiThread{
-                        Toast.makeText(applicationContext, "File received.", Toast.LENGTH_LONG).show()
-                        listen()
-                    }
-                }
+            .setPositiveButton("Confirm") { _, _ ->
+                receiveFile()
             }
-            .setNegativeButton("Cancel"
-            ) { _, _ ->
+            .setNegativeButton("Cancel") { _, _ ->
                 Toast.makeText(applicationContext, "Cancelled.", Toast.LENGTH_LONG).show()
                 listen()
             }
@@ -193,14 +162,33 @@ class MainActivity : AppCompatActivity() {
         startActivityForResult(intent, REQUEST_CODE)
     }
 
-    companion object {
-        //generic code
-        private const val REQUEST_CODE = 43
-        //Permission code
-        private const val PERMISSION_CODE = 1001
+    override fun onActivityResult(requestCode: Int, resultCode: Int, intent: Intent?) {
+        if (requestCode == REQUEST_CODE && resultCode == Activity.RESULT_OK){
+            var fileBase = getString(R.string.filePath)
+            if (intent != null){
+                val uri : Uri = intent.data!!
+                filePath.text = fileBase + getFileName(uri, baseContext.contentResolver)
+                data = intent.data
+            }
+        }
     }
 
-    //handle requested permission result
+    private fun getPermission(permission : String){
+        if (VERSION.SDK_INT >= VERSION_CODES.M) {
+            if (checkSelfPermission(permission) == PackageManager.PERMISSION_DENIED) {
+                //permission denied
+                val permissions = arrayOf(permission)
+                //show popup to request runtime permission
+                requestPermissions(permissions, PERMISSION_CODE)
+            }
+        }
+    }
+
+    private fun getPermissions() {
+        getPermission(Manifest.permission.INTERNET)
+        getPermission(Manifest.permission.READ_EXTERNAL_STORAGE)
+    }
+
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         when(requestCode){
             PERMISSION_CODE -> {
@@ -212,17 +200,6 @@ class MainActivity : AppCompatActivity() {
                     //permission from popup denied
                     Toast.makeText(this, "Permission denied", Toast.LENGTH_SHORT).show()
                 }
-            }
-        }
-    }
-
-    //handle result of picked image
-    override fun onActivityResult(requestCode: Int, resultCode: Int, intent: Intent?) {
-         if (requestCode == REQUEST_CODE && resultCode == Activity.RESULT_OK){
-            if (intent != null){
-                val uri : Uri = intent.data!!
-                filePath.text = fileBase + getFileName(uri, baseContext.contentResolver)
-                data = intent.data
             }
         }
     }
@@ -361,6 +338,9 @@ class TcpServer(applicationContext : Context, progressBar: ProgressBar) {
     }
 
     fun listen() {
+        if (tcpSocket == null){
+            tcpSocket = ServerSocket(port)
+        }
         println("Waiting for connection")
         socket = tcpSocket!!.accept()
         println("Connected to ${socket!!.inetAddress}:${socket!!.port}")
@@ -407,6 +387,7 @@ class TcpServer(applicationContext : Context, progressBar: ProgressBar) {
         }
     }
 
+    @Suppress("DEPRECATION")
     private fun saveFile(fileData : ByteArray, name : String, attempt : Int = 0) : Boolean {
         var path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
         val file : File
@@ -442,8 +423,13 @@ class TcpServer(applicationContext : Context, progressBar: ProgressBar) {
     }
 
     fun close() {
-        socket!!.close()
-        tcpSocket!!.close()
+        if (socket != null){
+            println("CLOSING")
+            socket!!.close()
+        }
+        if (tcpSocket != null){
+            tcpSocket!!.close()
+        }
         progressBar.progress = 0
     }
 
@@ -452,9 +438,6 @@ class TcpServer(applicationContext : Context, progressBar: ProgressBar) {
     }
     private fun byteArrayToString(data : ByteArray) : String {
        return String(data)
-    }
-    private fun intToByteArray(data : Int) : ByteArray {
-        return stringToByteArray(data.toString())
     }
     private fun byteArrayToInt(data : ByteArray) : Int {
         return Integer.parseInt(byteArrayToString(data))

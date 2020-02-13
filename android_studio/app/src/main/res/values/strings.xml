@@ -2,6 +2,8 @@
     <string name="app_name">parachute</string>
     <string name="title_home">Home</string>
     <string name="title_dashboard">Dashboard</string>
+    <string name="channel_name">INCOMING_FILE</string>
+    <string name="channel_description">Incoming File</string>
     <string name="send_data">Send data</string>
     <string name="title_notifications">Notifications</string>
     <string name="address">Address</string>
